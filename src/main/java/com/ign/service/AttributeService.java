@@ -10,56 +10,37 @@ import com.kibocommerce.sdk.common.ApiException;
 @Service
 public class AttributeService {
 
-    private final ProductAttributesApi attributesApi;
+	private final ProductAttributesApi attributesApi;
 
-    // Create API once (better performance)
-    public AttributeService(KiboConfig kiboConfig) {
-        this.attributesApi = ProductAttributesApi.builder()
-                .withConfig(kiboConfig.getConfiguration())
-                .build();
-    }
+	// Create API once (better performance)
+	public AttributeService(KiboConfig kiboConfig) {
+		this.attributesApi = ProductAttributesApi.builder().withConfig(kiboConfig.getConfiguration()).build();
+	}
 
-//      Check if attribute exists in Kibo
-    public boolean exists(String attributeFQN) {
-        try {
-            attributesApi.getAttribute(attributeFQN, null);
-            return true;
-        } catch (ApiException e) {
-            if (e.getCode() == 404) {
-                return false;
-            }
-            throw new RuntimeException("Error checking attribute: " + attributeFQN, e);
-        }
-    }
+	public void createIfNotExists(CatalogAdminsAttribute attribute) {
 
-    
-//      Create attribute only if not exists
-    
-    public CatalogAdminsAttribute createIfNotExists(CatalogAdminsAttribute attribute)
-            throws ApiException {
+		try {
+			attributesApi.getAttribute(attribute.getAttributeCode(), null);
+			System.out.println("Attribute already exists: " + attribute.getAttributeCode());
 
-        if (!exists(attribute.getAttributeFQN())) {
-            return attributesApi.addAttribute(attribute);
-        }
+		} catch (ApiException e) {
 
-        // Already exists → just return existing
-        System.err.println("Attribute  Exists --> "+attribute.getAttributeFQN());
-        return attributesApi.getAttribute(attribute.getAttributeFQN(), null);
-    }
+			if (e.getCode() == 404) {
+				try {
+					attributesApi.addAttribute(attribute);
+					System.out.println("Attribute created: " + attribute.getAttributeCode());
+				} catch (ApiException ex) {
+					System.err.println("Create error: " + ex.getResponseBody());
+				}
+			} else {
+				System.err.println("Check error: " + e.getResponseBody());
+			}
+		}
+	}
 
-    
-//      Direct create (force create)
-    public CatalogAdminsAttribute create(CatalogAdminsAttribute attribute)
-            throws ApiException {
-    	System.err.println(" Attribute Created Successfully --> "+attribute);
-        return attributesApi.addAttribute(attribute);
-    }
-
-   
 //     Get attribute by FQN
-    public CatalogAdminsAttribute get(String attributeFQN, String responseGroups)
-            throws ApiException {
+	public CatalogAdminsAttribute get(String attributeFQN, String responseGroups) throws ApiException {
 
-        return attributesApi.getAttribute(attributeFQN, responseGroups);
-    }
+		return attributesApi.getAttribute(attributeFQN, responseGroups);
+	}
 }

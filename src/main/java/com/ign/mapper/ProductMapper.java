@@ -3,35 +3,51 @@ package com.ign.mapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
 import com.ign.dto.ProductCsvDto;
+import com.ign.service.ProductTypeService;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProduct;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductOption;
+import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductOptionValue;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductPrice;
 import com.kibocommerce.sdk.catalogadministration.models.CommerceRuntimeMeasurement;
 import com.kibocommerce.sdk.catalogadministration.models.ProductInCatalogInfo;
 import com.kibocommerce.sdk.catalogadministration.models.ProductLocalizedContent;
+import com.kibocommerce.sdk.catalogadministration.models.ProductVariationOption;
 
 @Component
 public class ProductMapper {
 
-	public static CatalogAdminsProduct map(ProductCsvDto row) {
+	private final ProductTypeService productTypeService;
+
+	public ProductMapper(ProductTypeService productTypeService) {
+		this.productTypeService = productTypeService;
+	}
+
+	public CatalogAdminsProduct map(ProductCsvDto row) {
 
 		CatalogAdminsProduct product = new CatalogAdminsProduct();
 
 		// ================= BASIC =================
 		product.setProductCode(row.getProductCode());
 		product.setProductUsage(row.getProductUsage());
-		if (notEmpty(row.getProductTypeId())) {
-			product.setProductTypeId(Integer.parseInt(row.getProductTypeId()));
+
+		if (notEmpty(row.getProductTypeName())) {
+			Integer productTypeId = productTypeService.getOrCreateProductTypeId(row.getProductTypeName());
+			product.setProductTypeId(productTypeId);
+			System.out.println("Resolved ProductTypeId ---> " + productTypeId);
 		}
-		System.err.println("ID --> " + row.getProductTypeId());
+
 		product.setUpc(row.getUpc());
-		if (row.getMasterCatalogId() != null && !row.getMasterCatalogId().isBlank()) {
+
+		if (notEmpty(row.getMasterCatalogId())) {
 			product.setMasterCatalogId(Integer.parseInt(row.getMasterCatalogId()));
 		}
 
@@ -47,23 +63,14 @@ public class ProductMapper {
 		} else if ("Configurable".equalsIgnoreCase(row.getProductUsage())) {
 
 			if (isVariant) {
-
-				// ================= VARIANT =================
 				product.setIsVariation(true);
 				product.setBaseProductCode(row.getParentProductCode());
 				product.setHasConfigurableOptions(false);
 				product.setHasStandAloneOptions(false);
-
-				//mapVariantOptions(product, row);
-
 			} else {
-
-				// ================= CONFIGURABLE PARENT =================
 				product.setIsVariation(false);
 				product.setHasConfigurableOptions(true);
 				product.setHasStandAloneOptions(false);
-
-				mapParentOptions(product, row);
 			}
 		}
 
@@ -90,8 +97,13 @@ public class ProductMapper {
 		if (notEmpty(row.getPrice())) {
 
 			CatalogAdminsProductPrice price = new CatalogAdminsProductPrice();
+
 			price.setPrice(Double.parseDouble(row.getPrice()));
-			price.setSalePrice(notEmpty(row.getSalePrice()) ? Double.parseDouble(row.getSalePrice()) : null);
+
+			if (notEmpty(row.getSalePrice())) {
+				price.setSalePrice(Double.parseDouble(row.getSalePrice()));
+			}
+
 			price.setIsoCurrencyCode(row.getIsoCurrencyCode());
 
 			product.setPrice(price);
@@ -108,110 +120,119 @@ public class ProductMapper {
 			product.setFulfillmentTypesSupported(Arrays.asList(row.getFulfillmentTypes().split("\\|")));
 		}
 
+		// ================= BUILD VARIANT ATTRIBUTE MAP =================
+		if (notEmpty(row.getParentProductCode())) {
+
+			Map<String, String> variantMap = new LinkedHashMap<>();
+
+			if (notEmpty(row.getSizeoption())) {
+				variantMap.put("sizeoption", row.getSizeoption().trim());
+			}
+
+			if (notEmpty(row.getColoroptions())) {
+				variantMap.put("coloroptions", row.getColoroptions().trim());
+			}
+
+			if (!variantMap.isEmpty()) {
+				row.setVariantAttributes(variantMap);
+			}
+		}
+
+		// ================= VARIATION OPTIONS =================
+		if (isVariant && row.getVariantAttributes() != null && !row.getVariantAttributes().isEmpty()) {
+
+			List<ProductVariationOption> variationOptions = new ArrayList<>();
+
+			for (Map.Entry<String, String> entry : row.getVariantAttributes().entrySet()) {
+
+				if (entry.getKey() == null || entry.getValue() == null)
+					continue;
+
+				ProductVariationOption option = new ProductVariationOption();
+
+				option.setAttributeFQN("tenant~" + entry.getKey().trim());
+
+				option.setValue(entry.getValue().trim());
+
+				variationOptions.add(option);
+			}
+
+			product.setVariationOptions(variationOptions);
+		}
+
 		return product;
 	}
 
-	// =====================================================
-	// PARENT OPTIONS (CatalogAdminsProductOption)
-	// =====================================================
-	private static void mapParentOptions(CatalogAdminsProduct product, ProductCsvDto row) {
+	// OPTION BUILDER
+	public List<CatalogAdminsProductOption> buildOptions(List<CatalogAdminsProduct> variants) {
 
-		if (!notEmpty(row.getAttributeCode()) || !notEmpty(row.getValues()))
-			return;
+		Map<String, Set<String>> optionMap = new LinkedHashMap<>();
 
-		String[] attributeCodes = row.getAttributeCode().split("\\|");
-		String[] attributeValues = row.getValues().split("\\|");
+		for (CatalogAdminsProduct variant : variants) {
+			if (variant.getVariationOptions() == null)
+				continue;
+
+			variant.getVariationOptions().forEach(v -> {
+				if (v.getValue() == null)
+					return;
+
+				String value = String.valueOf(v.getValue());
+
+				optionMap.computeIfAbsent(v.getAttributeFQN(), k -> new LinkedHashSet<>()).add(value);
+			});
+		}
 
 		List<CatalogAdminsProductOption> options = new ArrayList<>();
 
-		for (int i = 0; i < attributeCodes.length; i++) {
-
-			String attrCode = attributeCodes[i].trim();
-			String valuesPart = i < attributeValues.length ? attributeValues[i] : "";
+		optionMap.forEach((attr, values) -> {
 
 			CatalogAdminsProductOption option = new CatalogAdminsProductOption();
-			option.setAttributeFQN("tenant~" + attrCode);
-			option.setIsProductImageGroupSelector(false);
+			option.setAttributeFQN(attr);
 
-			System.err.println("option --> "+option);
-			// Split values dynamically
-			if (notEmpty(valuesPart)) {
+			List<CatalogAdminsProductOptionValue> vals = new ArrayList<>();
 
-				List<String> values = Arrays.stream(valuesPart.split(",")).map(String::trim).toList();
-
-				List<com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductOptionValue> optionValues = values
-						.stream().map(val -> {
-							var v = new com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductOptionValue();
-							v.setValue(val);
-							return v;
-						}).toList();
-
-				option.setValues(optionValues);
+			for (String v : values) {
+				CatalogAdminsProductOptionValue val = new CatalogAdminsProductOptionValue();
+				val.setValue(v);
+				vals.add(val);
 			}
 
+			option.setValues(vals);
 			options.add(option);
+		});
+
+		return options;
+	}
+
+	// VARIATION OPTIONS BUILDER
+	public List<ProductVariationOption> buildVariationOptions(List<CatalogAdminsProduct> variants) {
+
+		List<ProductVariationOption> list = new ArrayList<>();
+
+		for (CatalogAdminsProduct variant : variants) {
+			if (variant.getVariationOptions() == null)
+				continue;
+
+			list.addAll(variant.getVariationOptions());
 		}
 
-		product.setOptions(options);
-		
-		System.out.println("options in Mapper ==> "+options);
+		return list;
 	}
-//	// =====================================================
-//	// VARIANT OPTIONS (ProductVariationOption)
-//	// =====================================================
-//	private static void mapVariantOptions(CatalogAdminsProduct product, ProductCsvDto row) {
-//
-//		Map<String, String> attributes = row.getVariantAttributes();
-//
-//		if (attributes == null || attributes.isEmpty())
-//			return;
-//
-//		List<ProductVariationOption> variationOptions = new ArrayList<>();
-//		StringBuilder variationKey = new StringBuilder();
-//
-//		attributes.forEach((key, value) -> {
-//
-//			if (!notEmpty(value))
-//				return;
-//
-//			String attributeFQN = "tenant~" + key.trim();
-//
-//			ProductVariationOption option = new ProductVariationOption();
-//			option.setAttributeFQN(attributeFQN);
-//			option.setValue(value.trim());
-//
-//			variationOptions.add(option);
-//
-//			if (variationKey.length() > 0)
-//				variationKey.append("|");
-//
-//			variationKey.append(attributeFQN).append(":").append(value.trim());
-//		});
-//
-//		product.setVariationOptions(variationOptions);
-//		product.setVariationKey(variationKey.toString());
-//		System.out.println("variationOptions in Mapper ==> "+variationOptions);
-//	}
 
-	// =====================================================
-	// HELPERS
-	// =====================================================
-	private static CommerceRuntimeMeasurement parseMeasurement(String value, String unit) {
+	// ================= HELPERS =================
 
+	private CommerceRuntimeMeasurement parseMeasurement(String value, String unit) {
 		if (!notEmpty(value))
 			return null;
-
-		CommerceRuntimeMeasurement measurement = new CommerceRuntimeMeasurement();
-		measurement.setValue(Double.parseDouble(value));
-
+		CommerceRuntimeMeasurement m = new CommerceRuntimeMeasurement();
+		m.setValue(Double.parseDouble(value));
 		if (notEmpty(unit)) {
-			measurement.setUnit(unit);
+			m.setUnit(unit);
 		}
-
-		return measurement;
+		return m;
 	}
 
-	private static boolean notEmpty(String value) {
+	private boolean notEmpty(String value) {
 		return value != null && !value.trim().isEmpty();
 	}
 }

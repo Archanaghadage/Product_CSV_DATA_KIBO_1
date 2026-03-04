@@ -21,61 +21,55 @@ import lombok.RequiredArgsConstructor;
 @Component
 public class ProductWriter implements ItemWriter<CatalogAdminsProduct> {
 
-    private final ProductService productService;
-    private final ProductMapper productMapper;   
+	private final ProductService productService;
+	private final ProductMapper productMapper;
 
-    @Override
-    public void write(Chunk<? extends CatalogAdminsProduct> chunk) throws Exception {
+	private int apiHitCount = 0; // 🔥 API counter
 
-        List<? extends CatalogAdminsProduct> items = chunk.getItems();
+	@Override
+	public void write(Chunk<? extends CatalogAdminsProduct> chunk) throws Exception {
+		List<? extends CatalogAdminsProduct> items = chunk.getItems();
+		System.out.println("Chunk received size: " + items.size());
+		Map<String, List<CatalogAdminsProduct>> variantGroup = new HashMap<>();
+		// 1️⃣ Group Variants
+		for (CatalogAdminsProduct product : items) {
+			if (Boolean.TRUE.equals(product.getIsVariation())) {
+				variantGroup.computeIfAbsent(product.getBaseProductCode(), k -> new ArrayList<>()).add(product);
+			}
+		}
+		// 2️⃣ Standard Products
+		for (CatalogAdminsProduct product : items) {
+			if (!Boolean.TRUE.equals(product.getIsVariation())
+					&& !Boolean.TRUE.equals(product.getHasConfigurableOptions())) {
+				long start = System.currentTimeMillis();
+				productService.addProduct(product); // 🔥 API CALL
+				long end = System.currentTimeMillis();
+				apiHitCount++;
+				System.out.println("STANDARD CREATED: " + product.getProductCode() + " | Time: " + (end - start) + " ms"
+						+ " | Total API Hits: " + apiHitCount);
+			}
+		}
 
-        Map<String, List<CatalogAdminsProduct>> variantGroup = new HashMap<>();
+		// 3️ Configurable Parents
+		for (CatalogAdminsProduct parent : items) {
+			if (Boolean.TRUE.equals(parent.getHasConfigurableOptions())) {
+				List<CatalogAdminsProduct> variants = variantGroup.get(parent.getProductCode());
+				if (variants == null || variants.isEmpty())
+					continue;
+				List<CatalogAdminsProductOption> options = productMapper.buildOptions(variants);
+				List<ProductVariationOption> variationOptions = productMapper.buildVariationOptions(variants);
+				parent.setOptions(options);
+				parent.setVariationOptions(variationOptions);
+				long start = System.currentTimeMillis();
+				productService.addProduct(parent); 
+				productService.enableAllVariations(parent.getProductCode());
+				long end = System.currentTimeMillis();
+				apiHitCount++;
+				System.out.println("CONFIGURABLE CREATED: " + parent.getProductCode() + " | Time: " + (end - start)
+						+ " ms" + " | Total API Hits: " + apiHitCount);
+			}
+		}
 
-        // 1️ Group Variants
-        for (CatalogAdminsProduct product : items) {
-            if (Boolean.TRUE.equals(product.getIsVariation())) {
-                variantGroup
-                    .computeIfAbsent(product.getBaseProductCode(), k -> new ArrayList<>())
-                    .add(product);
-            }
-        }
-
-        // 2️ Standard Products
-        for (CatalogAdminsProduct product : items) {
-
-            if (!Boolean.TRUE.equals(product.getIsVariation())
-                    && !Boolean.TRUE.equals(product.getHasConfigurableOptions())) {
-
-                productService.addProduct(product);
-            }
-        }
-
-        
-        // 3️ Configurable Parents
-        for (CatalogAdminsProduct parent : items) {
-
-            if (Boolean.TRUE.equals(parent.getHasConfigurableOptions())) {
-
-                List<CatalogAdminsProduct> variants =
-                        variantGroup.get(parent.getProductCode());
-
-                if (variants == null || variants.isEmpty())
-                    continue;
-
-                // Build options using mapper
-                List<CatalogAdminsProductOption> options =
-                        productMapper.buildOptions(variants);
-
-                List<ProductVariationOption> variationOptions =
-                        productMapper.buildVariationOptions(variants);
-
-                parent.setOptions(options);
-                parent.setVariationOptions(variationOptions);
-
-                System.out.println("Parent Product --> " + parent);
-
-                productService.addProduct(parent);
-            }
-        }
-    }
+		System.out.println("Chunk Completed. Total API Hits So Far: " + apiHitCount);
+	}
 }

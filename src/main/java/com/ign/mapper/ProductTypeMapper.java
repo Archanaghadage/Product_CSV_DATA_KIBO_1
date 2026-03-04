@@ -3,6 +3,7 @@ package com.ign.mapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
@@ -19,53 +20,56 @@ public class ProductTypeMapper {
 
 		ProductType productType = new ProductType();
 
+		// Name
 		productType.setName(dto.getProductTypeName());
+
 		// Supported Usage Types
 		if (dto.getSupportedUsageTypes() != null && !dto.getSupportedUsageTypes().isBlank()) {
-		List<String> usages = Arrays.asList(dto.getSupportedUsageTypes().split("|"));
-		productType.setProductUsages(usages);
+			List<String> usages = Arrays.stream(dto.getSupportedUsageTypes().split("\\|")).map(String::trim)
+					.collect(Collectors.toList());
+			productType.setProductUsages(usages);
 		}
 
-		// OPTIONS
-		if (dto.getOptions() != null && !dto.getOptions().isBlank()) {
-			productType.setOptions(buildAttributeList(dto.getOptions()));
-		}
+		// Options
+		productType.setOptions(buildAttributeList(dto.getOptions()));
 
-		// EXTRAS
-		if (dto.getExtras() != null && !dto.getExtras().isBlank()) {
-			productType.setExtras(buildAttributeList(dto.getExtras()));
-		}
+		// Extras
+		productType.setExtras(buildAttributeList(dto.getExtras()));
 
-		// PROPERTIES
-		if (dto.getProperties() != null && !dto.getProperties().isBlank()) {
-			productType.setProperties(buildAttributeList(dto.getProperties()));
-		}
+		// Properties
+		productType.setProperties(buildAttributeList(dto.getProperties()));
 
-		// VARIANT PROPERTIES
-		if (dto.getVariantProperties() != null && !dto.getVariantProperties().isBlank()) {
-			productType.setVariantProperties(buildAttributeList(dto.getVariantProperties()));
-		}
+		// Variant Properties
+		productType.setVariantProperties(buildAttributeList(dto.getVariantProperties()));
 
 		return productType;
 	}
 
-	
-	// Convert CSV attribute codes into AttributeInProductType
 	private List<AttributeInProductType> buildAttributeList(String columnValue) {
-		String[] attributeCodes = columnValue.split("|");
+
+		if (columnValue == null || columnValue.isBlank()) {
+			return null;
+		}
+
+		String[] attributeCodes = columnValue.split("\\|");
+
 		List<AttributeInProductType> list = new ArrayList<>();
 		int displayOrder = 1;
-		for (String attributeCode : attributeCodes) {
-			if (attributeCode == null || attributeCode.isBlank()) {
+
+		for (String code : attributeCodes) {
+
+			if (code == null || code.isBlank()) {
 				continue;
 			}
 
 			AttributeInProductType attribute = new AttributeInProductType();
-			attribute.setAttributeFQN(DEFAULT_NAMESPACE + "~" + attributeCode.trim());
+			attribute.setAttributeFQN(DEFAULT_NAMESPACE + "~" + code.trim());
 			attribute.setOrder(displayOrder++);
+			attribute.setIsRequiredByAdmin(true);
+
 			list.add(attribute);
 		}
 
-		return list;
+		return list.isEmpty() ? null : list;
 	}
 }

@@ -6,106 +6,71 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.ign.dto.ProductCsvDto;
-import com.kibocommerce.sdk.catalogadministration.models.AttributeSearchSettings;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsAttribute;
-import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsAttributeVocabularyValue;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsAttributeLocalizedContent;
+import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsAttributeVocabularyValue;
 
 @Component
 public class AttributeMapper {
 
-    public CatalogAdminsAttribute map(ProductCsvDto dto) {
+	public List<CatalogAdminsAttribute> map(ProductCsvDto dto) {
 
-        CatalogAdminsAttribute attribute = new CatalogAdminsAttribute();
+		List<CatalogAdminsAttribute> attributes = new ArrayList<>();
+		if (dto.getAttributeCode() == null || dto.getAttributeCode().isEmpty()) {
+			return attributes;
+		}
 
-        // ================= BASIC =================
-        attribute.setAdminName(dto.getAdministrationName());
-        attribute.setAttributeCode(dto.getAttributeCode());
+		String[] attributeCodes = dto.getAttributeCode().split("\\|");
+		for (String code : attributeCodes) {
 
-        String namespace = dto.getNamespace() != null ?
-                dto.getNamespace() : "tenant";
+			code = code.trim();
+			CatalogAdminsAttribute attribute = new CatalogAdminsAttribute();
+			attribute.setAdminName(code);
+			attribute.setAttributeCode(code);
+			String namespace = dto.getNamespace() != null ? dto.getNamespace() : "tenant";
+			attribute.setNamespace(namespace);
+			attribute.setAttributeFQN(namespace + "~" + code);
 
-        attribute.setNamespace(namespace);
-        attribute.setAttributeFQN(namespace + "~" + dto.getAttributeCode());
+			if (dto.getMasterCatalogId() != null) {
+				attribute.setMasterCatalogId(Integer.parseInt(dto.getMasterCatalogId()));
+			}
 
-        if (dto.getMasterCatalogId() != null) {
-            attribute.setMasterCatalogId(
-                    Integer.parseInt(dto.getMasterCatalogId()));
-        }
+			attribute.setInputType(dto.getInputType());
+			attribute.setDataType(dto.getDataType());
+			attribute.setValueType("Predefined");
+			System.out.println("Values --> " + dto.getValues());
+			attribute.setIsOption(true);
+			attribute.setIsExtra(false);
+			attribute.setIsProperty(false);
 
-        attribute.setInputType(dto.getInputType());
-        attribute.setDataType(dto.getDataType());
+			if (dto.getValues() != null && !dto.getValues().isBlank()) {
+				String[] valuesArray = dto.getValues().split(",");
+				List<CatalogAdminsAttributeVocabularyValue> vocabularyList = new ArrayList<>();
 
-        attribute.setValueType(
-                dto.getValueType() != null ?
-                        dto.getValueType() : "Predefined"
-        );
+				for (int i = 0; i < valuesArray.length; i++) {
+					String value = valuesArray[i].trim();
+					CatalogAdminsAttributeVocabularyValue vocab = new CatalogAdminsAttributeVocabularyValue();
+					vocab.setValue(value); // REQUIRED
+					vocab.valueSequence(i + 1); // CORRECT FIELD
+					vocabularyList.add(vocab);
+				}
+				attribute.setVocabularyValues(vocabularyList);
+				System.out.println("Vocabulary added -> " + vocabularyList.size());
+			}
 
-        Boolean isOption = parseBoolean(dto.getIsOption());
-        Boolean isExtra = parseBoolean(dto.getIsExtra());
-        Boolean isProperty = parseBoolean(dto.getIsProperty());
+			// CONTENT
+			CatalogAdminsAttributeLocalizedContent content = new CatalogAdminsAttributeLocalizedContent();
+			content.setLocaleCode(dto.getLocaleCode());
+			content.setName(code);
+			content.setDescription("Created via batch");
+			attribute.setContent(content);
+			attributes.add(attribute);
+		}
 
-        attribute.setIsOption(isOption != null ? isOption : false);
-        attribute.setIsExtra(isExtra != null ? isExtra : false);
-        attribute.setIsProperty(isProperty != null ? isProperty : false);
+		return attributes;
+	}
 
-        // ================= CONTENT =================
-        CatalogAdminsAttributeLocalizedContent content =
-                new CatalogAdminsAttributeLocalizedContent();
-
-        content.setLocaleCode(dto.getLocaleCode());
-        content.setName(dto.getAttributeLabel());
-        content.setDescription("Created via batch");
-
-        attribute.setContent(content);
-        
-
-        // ================= VOCABULARY VALUES =================
-        if (dto.getValues() != null && !dto.getValues().isEmpty()) {
-
-            String[] valuesArray = dto.getValues().split(",");
-            List<CatalogAdminsAttributeVocabularyValue> vocabularyList =
-                    new ArrayList<>();
-
-            for (int i = 0; i < valuesArray.length; i++) {
-
-                String value = valuesArray[i].trim();
-
-                CatalogAdminsAttributeVocabularyValue vocab =
-                        new CatalogAdminsAttributeVocabularyValue();
-
-                vocab.setValueSequence(i + 1);
-                vocab.setValue(value);
-                vocab.setDisplayOrder(i + 1);
-
-                vocabularyList.add(vocab);
-            }
-
-            attribute.setVocabularyValues(vocabularyList);
-        }
-        
-        // ================= SEARCH SETTINGS =================
-        AttributeSearchSettings searchSettings =
-                new AttributeSearchSettings();
-
-        searchSettings.setSearchableInStorefront(
-                parseBoolean(dto.getSearchableInStorefront()));
-
-        searchSettings.setSearchableInAdmin(
-                parseBoolean(dto.getSearchableInAdmin()));
-
-        searchSettings.setSearchDisplayValue(
-                parseBoolean(dto.getSearchDisplayValue()));
-
-        searchSettings.setAllowFilteringAndSortingInStorefront(
-                parseBoolean(dto.getAllowFilteringAndSortingInStorefront()));
-
-        attribute.setSearchSettings(searchSettings);
-
-        return attribute;
-    }
-
-    private Boolean parseBoolean(String value) {
-        return value != null && Boolean.parseBoolean(value);
-    }
+	private Boolean parseBoolean(String value) {
+		return value != null && Boolean.parseBoolean(value);
+	}
 }

@@ -25,15 +25,6 @@ public class ProductCsvReader {
 
 		DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
 		tokenizer.setDelimiter(",");
-//		tokenizer.setNames("operation", "attributeLabel", "administrationName", "attributeCode", "inputType",
-//				"dataType", "isOption", "isProperty", "values", "searchableInStorefront", "productTypeName",
-//				"supportedUsageTypes", "productCode", "parentProductCode", "productName" , "upc", "productShortDescription",
-//				"productFullDescription", "localeCode", "isActive", "price", "salePrice", "isoCurrencyCode",
-//				"productUsage", "masterCatalogId", "catalogId", "categoryId", "manageStock", "outOfStockBehavior",
-//				"sizeOption", "cost", "packageWidth", "packageLength", "packageWeight", "heightUnit", "widthUnit",
-//				"lengthUnit", "weightUnit", "hasConfigurableOptions", "hasStandAloneOptions", "fulfillmentTypes",
-//				"rating", "seoUrl", "metaTitle", "metaDescription", "publishedState");
-
 		tokenizer.setNames("operation", "attributeLabel", "administrationName", "attributeCode", "inputType",
 				"dataType", "isOption", "isProperty", "values", "searchableInStorefront", "productTypeName",
 				"supportedUsageTypes", "productCode", "parentProductCode", "productName", "upc",
@@ -43,6 +34,13 @@ public class ProductCsvReader {
 				"packageWeight", "heightUnit", "widthUnit", "lengthUnit", "weightUnit", "hasConfigurableOptions",
 				"hasStandAloneOptions", "fulfillmentTypes", "rating", "seoUrl", "metaTitle", "metaDescription",
 				"publishedState");
+		
+//		tokenizer.setNames("operation", "productTypeName", "productUsage", "productCode", "parentProductCode",
+//				"productName", "localeCode", "isActive", "price", "salePrice", "isoCurrencyCode", "masterCatalogId",
+//				"catalogId", "categoryId", "manageStock", "outOfStockBehavior", "sizeoption", "coloroptions", "cost",
+//				"packageWidth", "packageLength", "packageHeight", "packageWeight", "heightUnit", "widthUnit",
+//				"lengthUnit", "weightUnit", "hasConfigurableOptions", "hasStandAloneOptions", "fulfillmentTypes",
+//				"rating", "seoUrl", "publishedState");
 
 		BeanWrapperFieldSetMapper<ProductCsvDto> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
 		fieldSetMapper.setTargetType(ProductCsvDto.class);

@@ -1,5 +1,6 @@
 package com.ign.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.ign.config.KiboConfig;
 import com.kibocommerce.sdk.catalogadministration.api.ProductTypesApi;
+import com.kibocommerce.sdk.catalogadministration.models.AttributeInProductType;
 import com.kibocommerce.sdk.catalogadministration.models.ProductType;
 import com.kibocommerce.sdk.catalogadministration.models.ProductTypeCollection;
 import com.kibocommerce.sdk.common.ApiException;
@@ -16,46 +18,43 @@ public class ProductTypeService {
 
 	private final ProductTypesApi api;
 
-	// ✅ Thread-safe cache
+	// Thread-safe cache
 	private final Map<String, Integer> productTypeCache = new ConcurrentHashMap<>();
 
 	public ProductTypeService(KiboConfig kiboConfig) {
 		this.api = ProductTypesApi.builder().withConfig(kiboConfig.getConfiguration()).build();
 	}
 
-	// =========================================================
-	// ✅ MAIN METHOD (String version)
-	// =========================================================
+	// MAIN METHOD (String version)
 	public Integer getOrCreateProductTypeId(String typeName) {
-
 		if (typeName == null || typeName.isBlank()) {
 			throw new RuntimeException("ProductType name is missing");
 		}
-
 		typeName = typeName.trim();
 
 		// 1️⃣ Check cache
 		Integer cachedId = productTypeCache.get(typeName);
+		System.err.println("TypeName1: " + typeName);
 		if (cachedId != null) {
 			return cachedId;
 		}
-
 		try {
-			// 2️⃣ Check in Kibo
+			// 2️ Check in Kibo
 			ProductType existing = getProductTypeByName(typeName);
-
+			System.err.println("TypeName2: " + typeName);
 			if (existing != null && existing.getId() != null) {
 				Integer id = existing.getId();
 				productTypeCache.put(typeName, id);
 				return id;
 			}
 
-			// 3️⃣ Create if not exists
+			// 3️ Create if not exists
 			ProductType newType = new ProductType();
+			System.err.println("New Type: " + newType);
 			newType.setName(typeName);
 
 			ProductType created = addProductType(newType);
-
+			System.err.println("New Type: " + created);
 			if (created == null || created.getId() == null) {
 				throw new RuntimeException("Failed to create ProductType: " + typeName);
 			}
@@ -72,22 +71,80 @@ public class ProductTypeService {
 		}
 	}
 
-	// =========================================================
-	// ✅ OVERLOADED METHOD (ProductType version)
-	// =========================================================
+	// OVERLOADED METHOD (ProductType version)
 	public Integer getOrCreateProductTypeId(ProductType type) {
 
 		if (type == null || type.getName() == null || type.getName().isBlank()) {
 			throw new RuntimeException("ProductType name is missing");
 		}
 
-		return getOrCreateProductTypeId(type.getName().trim());
+		String typeName = type.getName().trim();
+
+		// 1️⃣ Check cache
+		Integer cachedId = productTypeCache.get(typeName);
+		if (cachedId != null) {
+			return cachedId;
+		}
+
+		try {
+			// 2️⃣ Check if already exists in Kibo
+			ProductType existing = getProductTypeByName(typeName);
+			Integer productTypeId;
+
+			if (existing != null && existing.getId() != null) {
+				productTypeId = existing.getId();
+			} else {
+
+				// 3️⃣ Create base ProductType (NO attributes here)
+				ProductType base = new ProductType();
+				base.setName(typeName);
+				base.setProductUsages(type.getProductUsages());
+
+				ProductType created = addProductType(base);
+
+				if (created == null || created.getId() == null) {
+					throw new RuntimeException("Failed to create ProductType: " + typeName);
+				}
+
+				productTypeId = created.getId();
+			}
+
+			// 4️⃣ Attach attributes properly using add APIs
+
+			if (type.getOptions() != null) {
+				for (AttributeInProductType option : type.getOptions()) {
+					addOptionIfNotExists(productTypeId, option);
+				}
+			}
+
+			if (type.getExtras() != null) {
+				for (AttributeInProductType extra : type.getExtras()) {
+					addExtraIfNotExists(productTypeId, extra);
+				}
+			}
+
+			if (type.getProperties() != null) {
+				for (AttributeInProductType property : type.getProperties()) {
+					addPropertyIfNotExists(productTypeId, property);
+				}
+			}
+
+			if (type.getVariantProperties() != null) {
+				for (AttributeInProductType variant : type.getVariantProperties()) {
+					addVariantPropertyIfNotExists(productTypeId, variant);
+				}
+			}
+			// 5️⃣ Cache and return
+			productTypeCache.put(typeName, productTypeId);
+
+			return productTypeId;
+
+		} catch (ApiException e) {
+			throw new RuntimeException("Error resolving ProductType: " + typeName, e);
+		}
 	}
 
-	// =========================================================
 	// Existing API methods
-	// =========================================================
-
 	public ProductType addProductType(ProductType productType) throws ApiException {
 		return api.addProductType(productType);
 	}
@@ -110,4 +167,68 @@ public class ProductTypeService {
 		}
 		return null;
 	}
+
+	private boolean attributeExists(List<AttributeInProductType> existingList, String attributeFQN) {
+		if (existingList == null) {
+			return false;
+		}
+		return existingList.stream().anyMatch(a -> attributeFQN.equals(a.getAttributeFQN()));
+	}
+
+	public void addOptionIfNotExists(Integer productTypeId, AttributeInProductType option) {
+		try {
+			ProductType productType = api.getProductType(productTypeId);
+			if (attributeExists(productType.getOptions(), option.getAttributeFQN())) {
+				System.out.println("Option already exists: " + option.getAttributeFQN());
+				return;
+			}
+			api.addOption(productTypeId, option);
+			System.out.println("Option added: " + option.getAttributeFQN());
+		} catch (ApiException e) {
+			throw new RuntimeException("Error adding option " + option.getAttributeFQN(), e);
+		}
+	}
+
+	public void addExtraIfNotExists(Integer productTypeId, AttributeInProductType extra) {
+		try {
+			ProductType productType = api.getProductType(productTypeId);
+			if (attributeExists(productType.getExtras(), extra.getAttributeFQN())) {
+				System.out.println("Extra already exists: " + extra.getAttributeFQN());
+				return;
+			}
+			api.addExtra(productTypeId, extra);
+			System.out.println("Extra added: " + extra.getAttributeFQN());
+		} catch (ApiException e) {
+			throw new RuntimeException("Error adding extra " + extra.getAttributeFQN(), e);
+		}
+	}
+
+	public void addPropertyIfNotExists(Integer productTypeId, AttributeInProductType property) {
+		try {
+			ProductType productType = api.getProductType(productTypeId);
+			if (attributeExists(productType.getProperties(), property.getAttributeFQN())) {
+				System.out.println("Property already exists: " + property.getAttributeFQN());
+				return;
+			}
+			api.addProperty(productTypeId, property);
+			System.out.println("Property added: " + property.getAttributeFQN());
+		} catch (ApiException e) {
+			throw new RuntimeException("Error adding property " + property.getAttributeFQN(), e);
+		}
+	}
+
+	public void addVariantPropertyIfNotExists(Integer productTypeId, AttributeInProductType variantProperty) {
+		try {
+			ProductType productType = api.getProductType(productTypeId);
+			if (attributeExists(productType.getVariantProperties(), variantProperty.getAttributeFQN())) {
+				System.out.println("Variant property already exists: " + variantProperty.getAttributeFQN());
+				return;
+			}
+			api.addVariantProperty(productTypeId, variantProperty);
+			System.out.println("Variant property added: " + variantProperty.getAttributeFQN());
+		} catch (ApiException e) {
+			throw new RuntimeException("Error adding variant property " + variantProperty.getAttributeFQN(), e);
+		}
+	}
+
 }

@@ -38,7 +38,7 @@ public class AttributeMapper {
 			attribute.setInputType(dto.getInputType());
 			attribute.setDataType(dto.getDataType());
 			attribute.setValueType("Predefined");
-			System.out.println("Values --> " + dto.getValues());
+			//System.out.println("Values --> " + dto.getValues());
 			attribute.setIsOption(true);
 			attribute.setIsExtra(false);
 			attribute.setIsProperty(false);
@@ -55,7 +55,7 @@ public class AttributeMapper {
 					vocabularyList.add(vocab);
 				}
 				attribute.setVocabularyValues(vocabularyList);
-				System.out.println("Vocabulary added -> " + vocabularyList.size());
+				//System.out.println("Vocabulary added -> " + vocabularyList.size());
 			}
 
 			// CONTENT

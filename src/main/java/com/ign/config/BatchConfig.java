@@ -2,6 +2,7 @@ package com.ign.config;
 import java.util.List;
 
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.SkipListener;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
@@ -76,6 +77,17 @@ public class BatchConfig {
                 .reader(reader.reader())
                 .processor(productProcessor)
                 .writer(productWriter)
+                .faultTolerant()
+                .retryLimit(3)
+                .retry(Exception.class)
+                .skipLimit(10)
+                .skip(Exception.class)
+                .listener(new SkipListener<Object, Object>() {
+                    @Override
+                    public void onSkipInWrite(Object item, Throwable t) {
+                        System.out.println("Skipped item: " + item + " due to " + t.getMessage());
+                    }
+                })
                 .build();
     }
 

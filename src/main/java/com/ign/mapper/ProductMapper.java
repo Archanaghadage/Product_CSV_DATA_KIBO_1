@@ -12,7 +12,7 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 import com.ign.dto.ProductCsvDto;
-import com.ign.service.ProductTypeService;
+import com.ign.service.ProductTypeCache;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProduct;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductInventoryInfo;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductOption;
@@ -26,10 +26,10 @@ import com.kibocommerce.sdk.catalogadministration.models.ProductVariationOption;
 @Component
 public class ProductMapper {
 
-	private final ProductTypeService productTypeService;
+	private final ProductTypeCache productTypeCache;
 
-	public ProductMapper(ProductTypeService productTypeService) {
-		this.productTypeService = productTypeService;
+	public ProductMapper(ProductTypeCache productTypeCache) {
+		this.productTypeCache = productTypeCache;
 	}
 
 	public CatalogAdminsProduct map(ProductCsvDto row) {
@@ -39,24 +39,25 @@ public class ProductMapper {
 		// ================= BASIC =================
 		product.setProductCode(row.getProductCode());
 		product.setProductUsage(row.getProductUsage());
-		if (notEmpty(row.getProductTypeName())) {
-			Integer productTypeId = productTypeService.getOrCreateProductTypeId(row.getProductTypeName());
-			product.setProductTypeId(productTypeId);
-			System.out.println("Resolved ProductTypeId ---> " + productTypeId);
-		}
-		product.setUpc(row.getUpc());
-		if (notEmpty(row.getMasterCatalogId())) {
-			product.setMasterCatalogId(Integer.parseInt(row.getMasterCatalogId()));
-		}
+		String productTypeName = row.getProductTypeName();
 		boolean isVariant = notEmpty(row.getParentProductCode());
-		
+		if (!isVariant) {
+			if (productTypeName == null || productTypeName.trim().isEmpty()) {
+				throw new RuntimeException("Missing productTypeName for productCode=" + row.getProductCode());
+			}
+			Integer productTypeId = productTypeCache.get(productTypeName);
+			if (productTypeId == null) {
+				throw new RuntimeException("ProductTypeId not found for productTypeName=" + productTypeName
+						+ " productCode=" + row.getProductCode());
+			}
+			product.setProductTypeId(productTypeId);
+		}
 		// ================= Inventory =================
 		CatalogAdminsProductInventoryInfo inventory = new CatalogAdminsProductInventoryInfo();
-        inventory.setManageStock(parseBool(row.getManageStock()));
-        inventory.setOutOfStockBehavior(row.getOutOfStockBehavior());
-        product.setInventoryInfo(inventory);
- 
-		
+		inventory.setManageStock(parseBool(row.getManageStock()));
+		inventory.setOutOfStockBehavior(row.getOutOfStockBehavior());
+		product.setInventoryInfo(inventory);
+
 		// ================= USAGE LOGIC =================
 		if ("Standard".equalsIgnoreCase(row.getProductUsage())) {
 			product.setIsVariation(false);
@@ -197,10 +198,10 @@ public class ProductMapper {
 		}
 		return m;
 	}
-	
+
 	private Boolean parseBool(String v) {
-        return v != null && v.equalsIgnoreCase("true");
-    }
+		return v != null && v.equalsIgnoreCase("true");
+	}
 
 	private boolean notEmpty(String value) {
 		return value != null && !value.trim().isEmpty();

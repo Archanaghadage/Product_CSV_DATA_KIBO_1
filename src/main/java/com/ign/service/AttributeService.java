@@ -18,13 +18,10 @@ public class AttributeService {
 	}
 
 	public void createIfNotExists(CatalogAdminsAttribute attribute) {
-
 		try {
 			attributesApi.getAttribute(attribute.getAttributeCode(), null);
 			System.out.println("Attribute already exists: " + attribute.getAttributeCode());
-
 		} catch (ApiException e) {
-
 			if (e.getCode() == 404) {
 				try {
 					attributesApi.addAttribute(attribute);
@@ -40,7 +37,6 @@ public class AttributeService {
 
 //     Get attribute by FQN
 	public CatalogAdminsAttribute get(String attributeFQN, String responseGroups) throws ApiException {
-
 		return attributesApi.getAttribute(attributeFQN, responseGroups);
 	}
 }

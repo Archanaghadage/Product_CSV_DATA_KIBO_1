@@ -29,22 +29,16 @@ public class ProductTypeProcessor
         if (item == null) {
             return null;
         }
-
         String typeName = item.getProductTypeName();
-
         if (typeName == null || typeName.isBlank()) {
             return null;
         }
-
         typeName = typeName.trim();
-
         // Skip duplicates inside same CSV
         if (processedTypes.contains(typeName)) {
             return null;
         }
-
         processedTypes.add(typeName);
-
         return mapper.map(item);
     }
 }

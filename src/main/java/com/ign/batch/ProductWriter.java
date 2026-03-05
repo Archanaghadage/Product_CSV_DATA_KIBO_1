@@ -24,20 +24,20 @@ public class ProductWriter implements ItemWriter<CatalogAdminsProduct> {
 	private final ProductService productService;
 	private final ProductMapper productMapper;
 
-	private int apiHitCount = 0; // 🔥 API counter
+	private int apiHitCount = 0; 
 
 	@Override
 	public void write(Chunk<? extends CatalogAdminsProduct> chunk) throws Exception {
 		List<? extends CatalogAdminsProduct> items = chunk.getItems();
 		System.out.println("Chunk received size: " + items.size());
 		Map<String, List<CatalogAdminsProduct>> variantGroup = new HashMap<>();
-		// 1️⃣ Group Variants
+		// 1️ Group Variants
 		for (CatalogAdminsProduct product : items) {
 			if (Boolean.TRUE.equals(product.getIsVariation())) {
 				variantGroup.computeIfAbsent(product.getBaseProductCode(), k -> new ArrayList<>()).add(product);
 			}
 		}
-		// 2️⃣ Standard Products
+		// 2️ Standard Products
 		for (CatalogAdminsProduct product : items) {
 			if (!Boolean.TRUE.equals(product.getIsVariation())
 					&& !Boolean.TRUE.equals(product.getHasConfigurableOptions())) {
@@ -56,13 +56,17 @@ public class ProductWriter implements ItemWriter<CatalogAdminsProduct> {
 				List<CatalogAdminsProduct> variants = variantGroup.get(parent.getProductCode());
 				if (variants == null || variants.isEmpty())
 					continue;
+				
 				List<CatalogAdminsProductOption> options = productMapper.buildOptions(variants);
 				List<ProductVariationOption> variationOptions = productMapper.buildVariationOptions(variants);
 				parent.setOptions(options);
 				parent.setVariationOptions(variationOptions);
+				
 				long start = System.currentTimeMillis();
+				
 				productService.addProduct(parent); 
 				productService.enableAllVariations(parent.getProductCode());
+				
 				long end = System.currentTimeMillis();
 				apiHitCount++;
 				System.out.println("CONFIGURABLE CREATED: " + parent.getProductCode() + " | Time: " + (end - start)

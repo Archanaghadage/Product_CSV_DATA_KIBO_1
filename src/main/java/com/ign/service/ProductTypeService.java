@@ -1,8 +1,6 @@
 package com.ign.service;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 
@@ -13,138 +11,97 @@ import com.kibocommerce.sdk.catalogadministration.models.ProductType;
 import com.kibocommerce.sdk.catalogadministration.models.ProductTypeCollection;
 import com.kibocommerce.sdk.common.ApiException;
 
+import jakarta.annotation.PostConstruct;
+
 @Service
 public class ProductTypeService {
 
 	private final ProductTypesApi api;
+	private final ProductTypeCache productTypeCache;
 
-	// Thread-safe cache
-	private final Map<String, Integer> productTypeCache = new ConcurrentHashMap<>();
-
-	public ProductTypeService(KiboConfig kiboConfig) {
+	public ProductTypeService(KiboConfig kiboConfig, ProductTypeCache productTypeCache) {
 		this.api = ProductTypesApi.builder().withConfig(kiboConfig.getConfiguration()).build();
+		this.productTypeCache = productTypeCache;
 	}
 
-	// MAIN METHOD (String version)
-	public Integer getOrCreateProductTypeId(String typeName) {
-		if (typeName == null || typeName.isBlank()) {
-			throw new RuntimeException("ProductType name is missing");
-		}
-		typeName = typeName.trim();
-
-		// 1️⃣ Check cache
-		Integer cachedId = productTypeCache.get(typeName);
-		System.err.println("TypeName1: " + typeName);
-		if (cachedId != null) {
-			return cachedId;
-		}
+	//LOAD CACHE WHEN APPLICATION STARTS
+	@PostConstruct
+	public void loadProductTypesToCache() {
 		try {
-			// 2️ Check in Kibo
-			ProductType existing = getProductTypeByName(typeName);
-			System.err.println("TypeName2: " + typeName);
-			if (existing != null && existing.getId() != null) {
-				Integer id = existing.getId();
-				productTypeCache.put(typeName, id);
-				return id;
+			ProductTypeCollection collection = api.getProductTypes(0, 200, null, null, null);
+			if (collection != null && collection.getItems() != null) {
+				for (ProductType type : collection.getItems()) {
+					if (type.getName() != null && type.getId() != null) {
+						productTypeCache.put(type.getName(), type.getId());
+					}
+				}
+				System.out.println("ProductType cache loaded: " + collection.getItems().size());
 			}
-
-			// 3️ Create if not exists
-			ProductType newType = new ProductType();
-			System.err.println("New Type: " + newType);
-			newType.setName(typeName);
-
-			ProductType created = addProductType(newType);
-			System.err.println("New Type: " + created);
-			if (created == null || created.getId() == null) {
-				throw new RuntimeException("Failed to create ProductType: " + typeName);
-			}
-
-			Integer id = created.getId();
-
-			// 4️⃣ Store in cache
-			productTypeCache.put(typeName, id);
-
-			return id;
-
 		} catch (ApiException e) {
-			throw new RuntimeException("Error resolving ProductType: " + typeName, e);
+			throw new RuntimeException("Failed to load product types into cache", e);
 		}
 	}
 
-	// OVERLOADED METHOD (ProductType version)
 	public Integer getOrCreateProductTypeId(ProductType type) {
-
 		if (type == null || type.getName() == null || type.getName().isBlank()) {
 			throw new RuntimeException("ProductType name is missing");
 		}
-
 		String typeName = type.getName().trim();
-
-		// 1️⃣ Check cache
+		// 1️ Check cache
 		Integer cachedId = productTypeCache.get(typeName);
 		if (cachedId != null) {
 			return cachedId;
 		}
-
 		try {
-			// 2️⃣ Check if already exists in Kibo
+			// 2️ Check if already exists
 			ProductType existing = getProductTypeByName(typeName);
 			Integer productTypeId;
-
 			if (existing != null && existing.getId() != null) {
 				productTypeId = existing.getId();
 			} else {
-
-				// 3️⃣ Create base ProductType (NO attributes here)
+				// 3️ Create ProductType
 				ProductType base = new ProductType();
 				base.setName(typeName);
 				base.setProductUsages(type.getProductUsages());
-
 				ProductType created = addProductType(base);
-
 				if (created == null || created.getId() == null) {
 					throw new RuntimeException("Failed to create ProductType: " + typeName);
 				}
-
 				productTypeId = created.getId();
 			}
 
-			// 4️⃣ Attach attributes properly using add APIs
-
+			// 4️ Attach attributes
 			if (type.getOptions() != null) {
 				for (AttributeInProductType option : type.getOptions()) {
 					addOptionIfNotExists(productTypeId, option);
 				}
 			}
-
 			if (type.getExtras() != null) {
 				for (AttributeInProductType extra : type.getExtras()) {
 					addExtraIfNotExists(productTypeId, extra);
 				}
 			}
-
 			if (type.getProperties() != null) {
 				for (AttributeInProductType property : type.getProperties()) {
 					addPropertyIfNotExists(productTypeId, property);
 				}
 			}
-
 			if (type.getVariantProperties() != null) {
 				for (AttributeInProductType variant : type.getVariantProperties()) {
 					addVariantPropertyIfNotExists(productTypeId, variant);
 				}
 			}
-			// 5️⃣ Cache and return
+
+			// 5️ Cache result
 			productTypeCache.put(typeName, productTypeId);
-
 			return productTypeId;
-
 		} catch (ApiException e) {
 			throw new RuntimeException("Error resolving ProductType: " + typeName, e);
 		}
 	}
 
-	// Existing API methods
+	// API METHODS
+
 	public ProductType addProductType(ProductType productType) throws ApiException {
 		return api.addProductType(productType);
 	}
@@ -159,9 +116,8 @@ public class ProductTypeService {
 	}
 
 	public ProductType getProductTypeByName(String name) throws ApiException {
-
 		String filter = "name eq '" + name + "'";
-		ProductTypeCollection collection = getAllProductTypes(0, 100, null, filter, null);
+		ProductTypeCollection collection = getAllProductTypes(0, 200, null, filter, null);
 		if (collection != null && collection.getItems() != null && !collection.getItems().isEmpty()) {
 			return collection.getItems().get(0);
 		}
@@ -174,7 +130,6 @@ public class ProductTypeService {
 		}
 		return existingList.stream().anyMatch(a -> attributeFQN.equals(a.getAttributeFQN()));
 	}
-
 	public void addOptionIfNotExists(Integer productTypeId, AttributeInProductType option) {
 		try {
 			ProductType productType = api.getProductType(productTypeId);
@@ -230,5 +185,4 @@ public class ProductTypeService {
 			throw new RuntimeException("Error adding variant property " + variantProperty.getAttributeFQN(), e);
 		}
 	}
-
 }

@@ -20,7 +20,7 @@ public class ProductService {
 
 	@Autowired
 	private KiboConfig kiboConfig;
-	
+
 	public CatalogAdminsProductCollection getAllProducts() throws ApiException {
 		ProductsApi api = ProductsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
 		return api.getProducts(null, null, null, null, null, null, null, null);
@@ -45,9 +45,9 @@ public class ProductService {
 
 	public void updateProduct(String parentCode, CatalogAdminsProduct parentUpdate) throws ApiException {
 		ProductsApi api = ProductsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-		api.updateProduct(parentCode,parentUpdate);
+		api.updateProduct(parentCode, parentUpdate);
 	}
-	
+
 	public ProductVariationCollection enableProductVariations(String productCode,
 			ProductVariationCollection productVariations) throws ApiException {
 		ProductVariationsApi api = ProductVariationsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
@@ -61,20 +61,19 @@ public class ProductService {
 
 		return api.getProductVariations(productCode, null, null, null, null);
 	}
-	
+
 	public void enableAllVariations(String productCode) throws ApiException {
-	    ProductVariationPagedCollection paged = getAllProductVariations(productCode);
-	    if (paged == null || paged.getItems() == null || paged.getItems().isEmpty()) {
-	        return;
-	    }
-	    List<ProductVariation> variations = paged.getItems();
-	    for (ProductVariation variation : variations) {
-	        variation.setIsActive(true);
-	    }
-	    ProductVariationCollection collection = new ProductVariationCollection();
-	    collection.setItems(variations);
-	    enableProductVariations(productCode, collection);
+		ProductVariationPagedCollection paged = getAllProductVariations(productCode);
+		if (paged == null || paged.getItems() == null || paged.getItems().isEmpty()) {
+			return;
+		}
+		List<ProductVariation> variations = paged.getItems();
+		for (ProductVariation variation : variations) {
+			variation.setIsActive(true);
+		}
+		ProductVariationCollection collection = new ProductVariationCollection();
+		collection.setItems(variations);
+		enableProductVariations(productCode, collection);
 	}
 
-	
 }

@@ -24,7 +24,7 @@ public class ProductTypeWriter implements ItemWriter<ProductType> {
 
 			// 1️ Create or get ProductType ID
 			Integer productTypeId = service.getOrCreateProductTypeId(type);
-			System.out.println("Type==>" + type);
+			//System.out.println("Type==>" + type);
 
 			// OPTIONS
 			if (type.getOptions() != null) {

@@ -3,6 +3,10 @@ package com.ign.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.kibocommerce.sdk.catalogadministration.api.ProductAttributesApi;
+import com.kibocommerce.sdk.catalogadministration.api.ProductTypesApi;
+import com.kibocommerce.sdk.catalogadministration.api.ProductVariationsApi;
+import com.kibocommerce.sdk.catalogadministration.api.ProductsApi;
 import com.kibocommerce.sdk.common.ApiCredentials;
 import com.kibocommerce.sdk.common.KiboConfiguration;
 
@@ -19,5 +23,26 @@ public class KiboConfig {
 		return config;
 
 	}
+    
+    @Bean
+    public ProductAttributesApi productAttributesApi(KiboConfiguration config) {
+        return new ProductAttributesApi(config);
+    }
+    
+    @Bean
+    public ProductTypesApi productTypesApi(KiboConfiguration config) {
+        return new ProductTypesApi(config);
+    }
+    
+    @Bean
+    public ProductsApi productsApi(KiboConfiguration config) {
+        return new ProductsApi(config);
+    }
+    
+    
+    @Bean
+    public ProductVariationsApi productVariationsApi(KiboConfiguration config) {
+        return new ProductVariationsApi(config);
+    }
 
 }

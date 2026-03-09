@@ -10,6 +10,6 @@ Create,,,,,,,,,,,,PC_002-7,PC_004,Rubber1-L-RED,,,,en-US,TRUE,0,0,USD,Configurab
 Create,,,,,,,,,,,,PC_002-8,PC_004,Rubber1-M-RED,,,,en-US,TRUE,0,0,USD,Configurable,2,3,23,TRUE,AllowBackOrder,M,Red,100,1,1,1,1,in,in,in,lbs,FALSE,FALSE,DirectShip|InStorePickup|Delivery,,,,,
 Create,,,,,,,,,,,,PC_002-9,PC_004,Rubber1-S-RED,,,,en-US,TRUE,0,0,USD,Configurable,2,3,23,TRUE,AllowBackOrder,S,Red,100,1,1,1,1,in,in,in,lbs,FALSE,FALSE,DirectShip|InStorePickup|Delivery,,,,,
 Create,,,,,,,,,,Stationary,Standard,PS_004,,Pen-Pencil,Pen_Pencil,,,en-US,TRUE,100,100,USD,Standard,2,3,23,TRUE,AllowBackOrder,,,,1,1,1,1,in,in,in,lbs,FALSE,TRUE,DirectShip|InStorePickup|Delivery,4.5,,,,Live
-Create,,,,,,,,,,FLORAL T-SHIRT CONFIG,Configurable,PC_011,,Shirts_Formal_Attire,SHIRTS,,,en-US,TRUE,100,100,USD,Configurable,2,3,23,TRUE,AllowBackOrder,,,,1,1,1,1,in,in,in,lbs,TRUE,TRUE,DirectShip|InStorePickup|Delivery,4.5,Shirts,Shirts,,Live
-Create,,,,,,,,,,,,PC_011-1,PC_011,Shirts_Formal_Attire_1,SHIRTS,,,en-US,TRUE,100,100,USD,Configurable,2,3,23,TRUE,AllowBackOrder,L,Blue,100,1,1,1,1,in,in,in,lbs,TRUE,TRUE,DirectShip|InStorePickup|Delivery,,,,,
 Create,,,,,,,,,,Stationary,Standard,PS_010,,Pen-Pencil,Pen_Pencil,,,en-US,TRUE,100,100,USD,Standard,2,3,23,TRUE,AllowBackOrder,,,,1,1,1,1,in,in,in,lbs,FALSE,TRUE,DirectShip|InStorePickup|Delivery,4.5,,,,Live
+Update,,,,,,,,,,Stationary,Standard,CSVSTD_002,,Updated Pen-Pencil,Pen_Pencil,,,,,99,,,Standard,2,3,23,,AllowBackOrder,,,,,,,,,,,,,,DirectShip|InStorePickup|Delivery,,,,,Live
+Delete,,,,,,,,,,Stationary,Standard,CSVSTD_001,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

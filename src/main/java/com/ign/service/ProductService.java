@@ -1,15 +1,13 @@
 package com.ign.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.ign.config.KiboConfig;
 import com.kibocommerce.sdk.catalogadministration.api.ProductVariationsApi;
 import com.kibocommerce.sdk.catalogadministration.api.ProductsApi;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProduct;
-import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductCollection;
 import com.kibocommerce.sdk.catalogadministration.models.ProductVariation;
 import com.kibocommerce.sdk.catalogadministration.models.ProductVariationCollection;
 import com.kibocommerce.sdk.catalogadministration.models.ProductVariationPagedCollection;
@@ -18,62 +16,84 @@ import com.kibocommerce.sdk.common.ApiException;
 @Service
 public class ProductService {
 
-	@Autowired
-	private KiboConfig kiboConfig;
+	private final ProductsApi productsApi;
+	private final ProductVariationsApi productVariationsApi;
 
-	public CatalogAdminsProductCollection getAllProducts() throws ApiException {
-		ProductsApi api = ProductsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-		return api.getProducts(null, null, null, null, null, null, null, null);
+	public ProductService(ProductsApi productsApi, ProductVariationsApi productVariationsApi) {
+		this.productsApi = productsApi;
+		this.productVariationsApi = productVariationsApi;
 	}
 
-	public CatalogAdminsProduct getProductById(String productId) throws ApiException {
-		ProductsApi api = ProductsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-		CatalogAdminsProduct product = api.getProduct(productId, null);
-		return product;
+	// 🔹 Create Product
+	public void createProductIfNotExist(CatalogAdminsProduct product) {
+		try {
+			productsApi.getProduct(product.getProductCode(), null);
+			System.out.println("Already exists: " + product.getProductCode());
+		} catch (ApiException e) {
+			if (e.getCode() == 404) {
+				try {
+					productsApi.addProduct(product);
+					System.out.println("Created: " + product.getProductCode());
+				} catch (ApiException ex) {
+					System.out.println("Create failed: " + ex.getMessage());
+				}
+			}
+		}
 	}
 
-	public CatalogAdminsProduct addProduct(CatalogAdminsProduct product) throws ApiException {
-		ProductsApi api = ProductsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-		CatalogAdminsProduct addedProduct = api.addProduct(product);
-		return addedProduct;
+	// 🔹 Update Product (Better)
+	public void updateProduct(CatalogAdminsProduct product) {
+		try {
+			productsApi.updateProduct(product.getProductCode(), product);
+			System.out.println("Updated: " + product.getProductCode());
+		} catch (ApiException e) {
+			if (e.getCode() == 404) {
+				System.out.println("Product not found for update: " + product.getProductCode());
+			} else {
+				System.out.println("Update failed: " + e.getResponseBody());
+			}
+		}
 	}
 
-	public void deleteProduct(String productId) throws ApiException {
-		ProductsApi api = ProductsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-		api.deleteProduct(productId);
+	// 🔹 Delete Product
+	public void deleteProduct(String productCode) {
+		try {
+			productsApi.deleteProduct(productCode);
+			System.out.println("Deleted: " + productCode);
+		} catch (ApiException e) {
+			if (e.getCode() == 404) {
+				System.out.println("Product not found: " + productCode);
+			} else {
+				System.out.println("Delete failed: " + e.getMessage());
+			}
+		}
 	}
 
-	public void updateProduct(String parentCode, CatalogAdminsProduct parentUpdate) throws ApiException {
-		ProductsApi api = ProductsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-		api.updateProduct(parentCode, parentUpdate);
-	}
-
-	public ProductVariationCollection enableProductVariations(String productCode,
-			ProductVariationCollection productVariations) throws ApiException {
-		ProductVariationsApi api = ProductVariationsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-		// Use updateProductVariations (plural) for multiple variations
-		return api.updateProductVariations(productCode, productVariations);
-	}
-
-	// Get ALL variations for a product (to discover variation keys)
+	// 🔹 Get all variations
 	public ProductVariationPagedCollection getAllProductVariations(String productCode) throws ApiException {
-		ProductVariationsApi api = ProductVariationsApi.builder().withConfig(kiboConfig.getConfiguration()).build();
-
-		return api.getProductVariations(productCode, null, null, null, null);
+		return productVariationsApi.getProductVariations(productCode, null, null, null, null);
 	}
 
+	// 🔹 Enable all variations
 	public void enableAllVariations(String productCode) throws ApiException {
 		ProductVariationPagedCollection paged = getAllProductVariations(productCode);
 		if (paged == null || paged.getItems() == null || paged.getItems().isEmpty()) {
+			System.out.println("No variations found for: " + productCode);
 			return;
 		}
-		List<ProductVariation> variations = paged.getItems();
-		for (ProductVariation variation : variations) {
-			variation.setIsActive(true);
+		List<ProductVariation> updatedList = new ArrayList<>();
+		for (ProductVariation existing : paged.getItems()) {
+
+			ProductVariation updated = new ProductVariation();
+			updated.setVariationkey(existing.getVariationkey());
+			updated.setVariationProductCode(existing.getVariationProductCode());
+			updated.setIsActive(true);
+
+			updatedList.add(updated);
 		}
 		ProductVariationCollection collection = new ProductVariationCollection();
-		collection.setItems(variations);
-		enableProductVariations(productCode, collection);
+		collection.setItems(updatedList);
+		productVariationsApi.updateProductVariations(productCode, collection);
+		System.out.println("All variations enabled for: " + productCode);
 	}
-
 }

@@ -17,9 +17,6 @@ public class AttributeProcessor
 
     private final AttributeMapper mapper;
 
-    private List<CatalogAdminsAttribute> buffer = new ArrayList<>();
-    private int index = 0;
-
     public AttributeProcessor(AttributeMapper mapper) {
         this.mapper = mapper;
     }

@@ -82,6 +82,7 @@ public class ProductMapper {
 			catalogInfo.setCatalogId(Integer.parseInt(row.getCatalogId()));
 			catalogInfo.setIsActive("TRUE".equalsIgnoreCase(row.getIsActive()));
 			product.setProductInCatalogs(Collections.singletonList(catalogInfo));
+			
 		}
 
 		// ================= CONTENT =================

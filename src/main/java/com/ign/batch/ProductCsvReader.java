@@ -6,43 +6,47 @@ import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 
 import com.ign.dto.ProductCsvDto;
 
 @Configuration
 public class ProductCsvReader {
 
-    @Bean
-    @StepScope
-    public SynchronizedItemStreamReader<ProductCsvDto> reader() {
+	@Bean
+	@StepScope
+	public SynchronizedItemStreamReader<ProductCsvDto> reader(@Value("#{jobParameters['filePath']}") String filePath) {
 
-        FlatFileItemReader<ProductCsvDto> flatReader = new FlatFileItemReader<>();
-        flatReader.setResource(new ClassPathResource("Product_549.csv"));
-        flatReader.setLinesToSkip(1);
+		System.out.println("Reading file: " + filePath);
+
+		FlatFileItemReader<ProductCsvDto> flatReader = new FlatFileItemReader<>();
+		flatReader.setResource(new FileSystemResource(filePath));
+		flatReader.setLinesToSkip(1);
 
 		DefaultLineMapper<ProductCsvDto> lineMapper = new DefaultLineMapper<>();
 
 		DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
 		tokenizer.setDelimiter(",");
-//		tokenizer.setNames("operation", "attributeLabel", "administrationName", "attributeCode", "inputType",
-//				"dataType", "isOption", "isProperty", "values", "searchableInStorefront", "productTypeName",
-//				"supportedUsageTypes", "productCode", "parentProductCode", "productName", "upc",
-//				"productShortDescription", "productFullDescription", "localeCode", "isActive", "price", "salePrice",
-//				"isoCurrencyCode", "productUsage", "masterCatalogId", "catalogId", "categoryId", "manageStock",
-//				"outOfStockBehavior", "sizeoption", "coloroptions", "cost", "packageWidth", "packageLength", "packageHeight",
-//				"packageWeight", "heightUnit", "widthUnit", "lengthUnit", "weightUnit", "hasConfigurableOptions",
-//				"hasStandAloneOptions", "fulfillmentTypes", "rating", "seoUrl", "metaTitle", "metaDescription",
-//				"publishedState");
+
+//		tokenizer.setNames("operation", "productTypeName", "productUsage", "productCode", "parentProductCode",
+//				"productName", "localeCode", "isActive", "price", "salePrice", "isoCurrencyCode", "masterCatalogId",
+//				"catalogId", "categoryId", "manageStock", "outOfStockBehavior", "sizeoption", "coloroptions", "cost",
+//				"packageWidth", "packageLength", "packageHeight", "packageWeight", "heightUnit", "widthUnit",
+//				"lengthUnit", "weightUnit", "hasConfigurableOptions", "hasStandAloneOptions", "fulfillmentTypes",
+//				"rating", "seoUrl", "publishedState");
 		
-		tokenizer.setNames("operation", "productTypeName", "productUsage", "productCode", "parentProductCode",
-				"productName", "localeCode", "isActive", "price", "salePrice", "isoCurrencyCode", "masterCatalogId",
-				"catalogId", "categoryId", "manageStock", "outOfStockBehavior", "sizeoption", "coloroptions", "cost",
-				"packageWidth", "packageLength", "packageHeight", "packageWeight", "heightUnit", "widthUnit",
-				"lengthUnit", "weightUnit", "hasConfigurableOptions", "hasStandAloneOptions", "fulfillmentTypes",
-				"rating", "seoUrl", "publishedState");
+		tokenizer.setNames("operation", "attributeLabel", "administrationName", "attributeCode", "inputType",
+		"dataType", "isOption", "isProperty", "values", "searchableInStorefront", "productTypeName",
+		"supportedUsageTypes", "productCode", "parentProductCode", "productName", "upc",
+		"productShortDescription", "productFullDescription", "localeCode", "isActive", "price", "salePrice",
+		"isoCurrencyCode", "productUsage", "masterCatalogId", "catalogId", "categoryId", "manageStock",
+		"outOfStockBehavior", "sizeoption", "coloroptions", "cost", "packageWidth", "packageLength", "packageHeight",
+		"packageWeight", "heightUnit", "widthUnit", "lengthUnit", "weightUnit", "hasConfigurableOptions",
+		"hasStandAloneOptions", "fulfillmentTypes", "rating", "seoUrl", "metaTitle", "metaDescription",
+		"publishedState");
 
 		BeanWrapperFieldSetMapper<ProductCsvDto> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
 		fieldSetMapper.setTargetType(ProductCsvDto.class);
@@ -51,13 +55,11 @@ public class ProductCsvReader {
 		lineMapper.setFieldSetMapper(fieldSetMapper);
 
 		flatReader.setLineMapper(lineMapper);
-		// Thread-safe wrapper
-        SynchronizedItemStreamReader<ProductCsvDto> synchronizedReader =
-                new SynchronizedItemStreamReader<>();
-        synchronizedReader.setDelegate(flatReader);
 
-		System.err.println("Reader CSV 1");
-		System.out.println(synchronizedReader);
-		return synchronizedReader;
+		SynchronizedItemStreamReader<ProductCsvDto> syncReader = new SynchronizedItemStreamReader<>();
+
+		syncReader.setDelegate(flatReader);
+
+		return syncReader;
 	}
 }

@@ -60,17 +60,17 @@ public class ProductWriter implements ItemWriter<ProductBatchWrapper> {
 
 				case "CREATE":
 					productService.createProductIfNotExist(product);
-					System.out.println("STANDARD CREATED: " + product.getProductCode());
+					//System.out.println("STANDARD CREATED: " + product.getProductCode());
 					break;
 
 				case "UPDATE":
 					productService.updateProduct(product);
-					System.out.println("STANDARD UPDATED: " + product.getProductCode());
+					//System.out.println("STANDARD UPDATED: " + product.getProductCode());
 					break;
 
 				case "DELETE":
 					productService.deleteProduct(product.getProductCode());
-					System.out.println("STANDARD DELETED: " + product.getProductCode());
+					//System.out.println("STANDARD DELETED: " + product.getProductCode());
 					break;
 
 				default:
@@ -105,17 +105,17 @@ public class ProductWriter implements ItemWriter<ProductBatchWrapper> {
 				case "CREATE":
 					productService.createProductIfNotExist(parent);
 					productService.enableAllVariations(parent.getProductCode());
-					System.out.println("CONFIGURABLE: " + parent.getProductCode());
+					//System.out.println("CONFIGURABLE: " + parent.getProductCode());
 					break;
 
 				case "UPDATE":
 					productService.updateProduct(parent);
-					System.out.println("CONFIGURABLE: " + parent.getProductCode());
+					//System.out.println("CONFIGURABLE: " + parent.getProductCode());
 					break;
 
 				case "DELETE":
 					productService.deleteProduct(parent.getProductCode());
-					System.out.println("CONFIGURABLE: " + parent.getProductCode());
+					//System.out.println("CONFIGURABLE: " + parent.getProductCode());
 					break;
 
 				default:

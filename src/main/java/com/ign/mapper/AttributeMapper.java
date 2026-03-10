@@ -69,8 +69,4 @@ public class AttributeMapper {
 
 		return attributes;
 	}
-
-	private Boolean parseBoolean(String value) {
-		return value != null && Boolean.parseBoolean(value);
-	}
 }

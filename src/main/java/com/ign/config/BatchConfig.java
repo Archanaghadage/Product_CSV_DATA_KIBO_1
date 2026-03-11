@@ -74,7 +74,7 @@ public class BatchConfig {
                             ProductWriter productWriter) {
 
         return new StepBuilder("productStep", jobRepository)
-                .<ProductCsvDto, ProductBatchWrapper>chunk(100, transactionManager)
+                .<ProductCsvDto, ProductBatchWrapper>chunk(200, transactionManager)
                 .reader(reader.reader(null))
                 .processor(productProcessor)
                 .writer(productWriter)

@@ -14,7 +14,6 @@ import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsAttributeV
 public class AttributeMapper {
 
 	public List<CatalogAdminsAttribute> map(ProductCsvDto dto) {
-
 		List<CatalogAdminsAttribute> attributes = new ArrayList<>();
 
 		if (dto.getAttributeCode() == null || dto.getAttributeCode().isEmpty()) {
@@ -58,23 +57,17 @@ public class AttributeMapper {
 			 * VOCABULARY VALUES
 			 */
 			if (dto.getValues() != null && !dto.getValues().isBlank()) {
-
 				String[] valuesArray = dto.getValues().split(",");
-
 				List<CatalogAdminsAttributeVocabularyValue> vocabularyList = new ArrayList<>();
-
 				for (int i = 0; i < valuesArray.length; i++) {
 
 					String value = valuesArray[i].trim();
-
 					CatalogAdminsAttributeVocabularyValue vocab = new CatalogAdminsAttributeVocabularyValue();
-
 					vocab.setValue(value);
 					vocab.valueSequence(i + 1);
-
 					vocabularyList.add(vocab);
 				}
-
+				
 				attribute.setVocabularyValues(vocabularyList);
 			}
 
@@ -85,9 +78,7 @@ public class AttributeMapper {
 			content.setLocaleCode(dto.getLocaleCode());
 			content.setName(code);
 			content.setDescription("Created via batch");
-
 			attribute.setContent(content);
-
 			attributes.add(attribute);
 		}
 

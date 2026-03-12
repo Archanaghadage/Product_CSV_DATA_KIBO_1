@@ -19,7 +19,8 @@ public class ProductTypeMapper {
 	public ProductType map(ProductCsvDto dto) {
 
 		ProductType productType = new ProductType();
-
+		
+		
 		// Name
 		productType.setName(dto.getProductTypeName());
 
@@ -30,17 +31,17 @@ public class ProductTypeMapper {
 			productType.setProductUsages(usages);
 		}
 
-//		// Options
-//		productType.setOptions(buildAttributeList(dto.getOptions()));
-//
-//		// Extras
-//		productType.setExtras(buildAttributeList(dto.getExtras()));
-//
-//		// Properties
-//		productType.setProperties(buildAttributeList(dto.getProperties()));
-//
-//		// Variant Properties
-//		productType.setVariantProperties(buildAttributeList(dto.getVariantProperties()));
+		// Options
+		productType.setOptions(buildAttributeList(dto.getOptions()));
+
+		// Extras
+		productType.setExtras(buildAttributeList(dto.getExtras()));
+
+		// Properties
+		productType.setProperties(buildAttributeList(dto.getProperties()));
+
+		// Variant Properties
+		productType.setVariantProperties(buildAttributeList(dto.getVariantProperties()));
 
 		return productType;
 	}
@@ -61,7 +62,6 @@ public class ProductTypeMapper {
 			if (code == null || code.isBlank()) {
 				continue;
 			}
-
 			AttributeInProductType attribute = new AttributeInProductType();
 			attribute.setAttributeFQN(DEFAULT_NAMESPACE + "~" + code.trim());
 			attribute.setOrder(displayOrder++);

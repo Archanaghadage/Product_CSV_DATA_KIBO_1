@@ -18,7 +18,11 @@ import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductInv
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductOption;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductOptionValue;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductPrice;
+import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductProperty;
+import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProductPropertyValue;
 import com.kibocommerce.sdk.catalogadministration.models.CommerceRuntimeMeasurement;
+import com.kibocommerce.sdk.catalogadministration.models.ProductExtra;
+import com.kibocommerce.sdk.catalogadministration.models.ProductExtraValue;
 import com.kibocommerce.sdk.catalogadministration.models.ProductInCatalogInfo;
 import com.kibocommerce.sdk.catalogadministration.models.ProductLocalizedContent;
 import com.kibocommerce.sdk.catalogadministration.models.ProductVariationOption;
@@ -52,6 +56,22 @@ public class ProductMapper {
 			}
 			product.setProductTypeId(productTypeId);
 		}
+		
+		CatalogAdminsProductProperty ratingProperty = new CatalogAdminsProductProperty();
+		ratingProperty.setAttributeFQN("tenant~rating");
+		CatalogAdminsProductPropertyValue propertyValue = new CatalogAdminsProductPropertyValue();
+		propertyValue.setValue(row.getRating());     
+		ratingProperty.setValues(List.of(propertyValue));
+		product.setProperties(List.of(ratingProperty));
+		
+		
+		ProductExtra giftWrapExtra = new ProductExtra();
+		giftWrapExtra.setAttributeFQN("tenant~giftwrap");
+		ProductExtraValue value = new ProductExtraValue();
+		value.setValue(row.getGiftwrap());
+		giftWrapExtra.setValues(List.of(value));
+		product.addExtrasItem(giftWrapExtra);
+		
 		// ================= Inventory =================
 		CatalogAdminsProductInventoryInfo inventory = new CatalogAdminsProductInventoryInfo();
 		inventory.setManageStock(parseBool(row.getManageStock()));

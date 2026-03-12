@@ -39,7 +39,7 @@ public class AttributeService {
 
 	public void createIfNotExists(CatalogAdminsAttribute attribute) {
 		try {
-			attributesApi.getAttribute("tenant~" + attribute.getAttributeFQN(), null);
+			attributesApi.getAttribute(attribute.getAttributeFQN(), null);
 			System.out.println("Attribute already exists: " + attribute.getAttributeFQN());
 		} catch (ApiException e) {
 			if (e.getCode() == 404) {

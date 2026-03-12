@@ -45,7 +45,7 @@ public class ProductCsvReader {
 		"isoCurrencyCode", "productUsage", "masterCatalogId", "catalogId", "categoryId", "manageStock",
 		"outOfStockBehavior", "sizeoption", "coloroptions", "cost", "packageWidth", "packageLength", "packageHeight",
 		"packageWeight", "heightUnit", "widthUnit", "lengthUnit", "weightUnit", "hasConfigurableOptions",
-		"hasStandAloneOptions", "fulfillmentTypes", "rating", "seoUrl", "metaTitle", "metaDescription",
+		"hasStandAloneOptions", "fulfillmentTypes", "rating", "giftwrap", "seoUrl", "metaTitle", "metaDescription",
 		"publishedState");
 
 		BeanWrapperFieldSetMapper<ProductCsvDto> fieldSetMapper = new BeanWrapperFieldSetMapper<>();

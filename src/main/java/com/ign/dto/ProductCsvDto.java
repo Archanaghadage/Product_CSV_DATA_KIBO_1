@@ -28,14 +28,9 @@ public class ProductCsvDto {
     private String isExtra;
     private String availableForOrderRouting;
     
- // Validation controls
-    private String minStringLength;
-    private String maxStringLength;
-
-    // Search settings
+   // Search settings
     private String searchableInAdmin;
     private String searchDisplayValue;
-    private String allowFilteringAndSortingInStorefront;
 
     private String productTypeName;
     private String supportedUsageTypes;
@@ -89,15 +84,12 @@ public class ProductCsvDto {
     private String parentProductCode;
     private String sizeoption;
     private String coloroptions;
+    private String giftwrap;
     private String cost;
 
-    private String enable;
     private String seoUrl;
     private String metaTitle;
     private String metaDescription;
     private String publishedState;
 
-    private String giftWrapEnabled;
-    private String giftWrapDeltaPrice;
-    private String giftWrapCurrency;
 }

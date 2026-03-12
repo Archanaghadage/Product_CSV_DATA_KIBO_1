@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.ign.exception.RateLimitRetry;
 import com.kibocommerce.sdk.catalogadministration.api.ProductVariationsApi;
 import com.kibocommerce.sdk.catalogadministration.api.ProductsApi;
 import com.kibocommerce.sdk.catalogadministration.models.CatalogAdminsProduct;
@@ -26,42 +27,65 @@ public class ProductService {
 
 	// 🔹 Create Product
 	public void createProductIfNotExist(CatalogAdminsProduct product) {
+
 		try {
-			productsApi.getProduct(product.getProductCode(), null);
+
+			RateLimitRetry.execute(() -> {
+				productsApi.getProduct(product.getProductCode(), null);
+				return null;
+			});
+
 			System.out.println("Already exists: " + product.getProductCode());
-		} catch (ApiException e) {
-			if (e.getCode() == 404) {
-				try {
+
+		} catch (RuntimeException e) {
+
+			Throwable cause = e.getCause();
+
+			if (cause instanceof ApiException apiEx && apiEx.getCode() == 404) {
+
+				RateLimitRetry.execute(() -> {
 					productsApi.addProduct(product);
-					System.out.println("Created: " + product.getProductCode());
-				} catch (ApiException ex) {
-					System.out.println("Create failed: " + ex.getMessage());
-				}
+					return null;
+				});
+
+				System.out.println("Created: " + product.getProductCode());
+			} else {
+				System.out.println("Create failed: " + e.getMessage());
 			}
 		}
 	}
 
 	// 🔹 Update Product (Better)
 	public void updateProduct(CatalogAdminsProduct product) {
+
 		try {
-			productsApi.updateProduct(product.getProductCode(), product);
+			RateLimitRetry.execute(() -> {
+				productsApi.updateProduct(product.getProductCode(), product);
+				return null;
+			});
 			System.out.println("Updated: " + product.getProductCode());
-		} catch (ApiException e) {
-			if (e.getCode() == 404) {
+		} catch (RuntimeException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof ApiException apiEx && apiEx.getCode() == 404) {
 				System.out.println("Product not found for update: " + product.getProductCode());
 			} else {
-				System.out.println("Update failed: " + e.getResponseBody());
+				System.out.println("Update failed: " + e.getMessage());
 			}
 		}
 	}
 
 	// 🔹 Delete Product
 	public void deleteProduct(String productCode) {
+
 		try {
-			productsApi.deleteProduct(productCode);
+			RateLimitRetry.execute(() -> {
+				productsApi.deleteProduct(productCode);
+				return null;
+			});
 			System.out.println("Deleted: " + productCode);
-		} catch (ApiException e) {
-			if (e.getCode() == 404) {
+		} catch (RuntimeException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof ApiException apiEx && apiEx.getCode() == 404) {
 				System.out.println("Product not found: " + productCode);
 			} else {
 				System.out.println("Delete failed: " + e.getMessage());
@@ -70,8 +94,9 @@ public class ProductService {
 	}
 
 	// 🔹 Get all variations
-	public ProductVariationPagedCollection getAllProductVariations(String productCode) throws ApiException {
-		return productVariationsApi.getProductVariations(productCode, null, null, null, null);
+	public ProductVariationPagedCollection getAllProductVariations(String productCode) {
+		return RateLimitRetry
+				.execute(() -> productVariationsApi.getProductVariations(productCode, null, null, null, null));
 	}
 
 	// 🔹 Enable all variations
@@ -93,7 +118,10 @@ public class ProductService {
 		}
 		ProductVariationCollection collection = new ProductVariationCollection();
 		collection.setItems(updatedList);
-		productVariationsApi.updateProductVariations(productCode, collection);
+		RateLimitRetry.execute(() -> {
+			productVariationsApi.updateProductVariations(productCode, collection);
+			return null;
+		});
 		System.out.println("All variations enabled for: " + productCode);
 	}
 }

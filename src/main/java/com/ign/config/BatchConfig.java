@@ -74,18 +74,17 @@ public class BatchConfig {
                             ProductWriter productWriter) {
 
         return new StepBuilder("productStep", jobRepository)
-                .<ProductCsvDto, ProductBatchWrapper>chunk(200, transactionManager)
-                .reader(reader.reader(null))
-                .processor(productProcessor)
-                .writer(productWriter)
-                .faultTolerant()
-                .retryLimit(3)
-                .retry(Exception.class)
-                .keyGenerator(item -> ((ProductCsvDto) item).getProductCode())
-                .skipLimit(10)
-                .skip(Exception.class)
-                .listener(fileMoveListener)
-                .build();
+        			.<ProductCsvDto, ProductBatchWrapper>chunk(100, transactionManager)
+        			.reader(reader.reader(null))
+        			.processor(productProcessor)
+        			.writer(productWriter)
+        			.listener(fileMoveListener)
+        			.faultTolerant()
+        			.retryLimit(3)
+        			.retry(Exception.class)
+        			.skipLimit(50)
+        			.skip(Exception.class)
+        			.build();
     }
 
     // JOB FLOW
